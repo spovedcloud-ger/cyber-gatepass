@@ -10,21 +10,27 @@ const MONGODB_URI = process.env.MONGODB_URI;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Enhanced Connection Logic for Serverless
-let isConnected = false;
-const connectDB = async () => {
-    if (isConnected) return;
-    try {
-        await mongoose.connect(MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000,
-        });
-        isConnected = true;
-        console.log('CYBER-DB: CLOUD UPLINK ESTABLISHED');
-    } catch (err) {
-        console.error('CYBER-DB: CONNECTION FAILED', err);
-        throw err;
-    }
-};
+// Global connection state
+let cachedConnection = null;
+
+async function connectToDatabase() {
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is missing from environment variables');
+  }
+
+  // Set options to handle serverless timeouts
+  const opts = {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 8000,
+  };
+
+  cachedConnection = await mongoose.connect(MONGODB_URI, opts);
+  return cachedConnection;
+}
 
 // Define Schema
 const gatepassSchema = new mongoose.Schema({
@@ -38,55 +44,58 @@ const gatepassSchema = new mongoose.Schema({
 
 const Gatepass = mongoose.models.Gatepass || mongoose.model('Gatepass', gatepassSchema);
 
-// Middleware to ensure DB connection
-app.use(async (req, req_res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (err) {
-        req_res.status(500).json({ error: 'DATABASE_CONNECTION_ERROR' });
-    }
+// Middleware for DB connection
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('DB ERROR:', error);
+    res.status(500).json({ error: 'DATABASE_CONNECTION_ERROR', details: error.message });
+  }
 });
 
-// GET all items
-app.get('/api/items', async (req, res) => {
-    try {
-        const items = await Gatepass.find({ isDeleted: false }).sort({ createdAt: -1 });
-        res.json(items);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+// Routes supporting both prefixed and unprefixed paths
+const registerRoutes = (pathPrefix = '') => {
+  app.get(`${pathPrefix}/items`, async (req, res) => {
+      try {
+          const items = await Gatepass.find({ isDeleted: false }).sort({ createdAt: -1 });
+          res.json(items);
+      } catch (err) { res.status(500).json({ error: err.message }); }
+  });
 
-// GET trash items
-app.get('/api/trash', async (req, res) => {
-    try {
-        const items = await Gatepass.find({ isDeleted: true }).sort({ createdAt: -1 });
-        res.json(items);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  app.get(`${pathPrefix}/trash`, async (req, res) => {
+      try {
+          const items = await Gatepass.find({ isDeleted: true }).sort({ createdAt: -1 });
+          res.json(items);
+      } catch (err) { res.status(500).json({ error: err.message }); }
+  });
 
-// POST new item
-app.post('/api/items', async (req, res) => {
-    try {
-        const newItem = new Gatepass(req.body);
-        await newItem.save();
-        res.json(newItem);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  app.post(`${pathPrefix}/items`, async (req, res) => {
+      try {
+          const newItem = new Gatepass(req.body);
+          await newItem.save();
+          res.json(newItem);
+      } catch (err) { res.status(500).json({ error: err.message }); }
+  });
 
-// PATCH update item
-app.patch('/api/items/:id', async (req, res) => {
-    try {
-        const updated = await Gatepass.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(updated);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  app.patch(`${pathPrefix}/items/:id`, async (req, res) => {
+      try {
+          const updated = await Gatepass.findByIdAndUpdate(req.params.id, req.body, { new: true });
+          res.json(updated);
+      } catch (err) { res.status(500).json({ error: err.message }); }
+  });
 
-// DELETE (Wipe) item
-app.delete('/api/items/:id', async (req, res) => {
-    try {
-        await Gatepass.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  app.delete(`${pathPrefix}/items/:id`, async (req, res) => {
+      try {
+          await Gatepass.findByIdAndDelete(req.params.id);
+          res.json({ success: true });
+      } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+};
+
+// Support both /api/items and /items
+registerRoutes('/api');
+registerRoutes('');
 
 module.exports = app;
