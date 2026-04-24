@@ -264,7 +264,7 @@ function GateLogs({ items, refreshData }) {
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'In Process' ? 'Completed' : 'In Process';
-    const response = await fetch(`${API_BASE}/items/${id}`, {
+    const response = await fetch(`${API_BASE}/items?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
@@ -276,7 +276,7 @@ function GateLogs({ items, refreshData }) {
   const deleteItem = (id) => setDeleteConfirm({ show: true, id });
   
   const confirmDelete = async () => {
-    const response = await fetch(`${API_BASE}/items/${deleteConfirm.id}`, {
+    const response = await fetch(`${API_BASE}/items?id=${deleteConfirm.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isDeleted: true })
@@ -288,7 +288,7 @@ function GateLogs({ items, refreshData }) {
 
   const handleEditSave = async (e) => {
     e.preventDefault();
-    const response = await fetch(`${API_BASE}/items/${editModal.item._id}`, {
+    const response = await fetch(`${API_BASE}/items?id=${editModal.item._id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -424,7 +424,7 @@ function GateLogs({ items, refreshData }) {
 
 function TrashBin({ deletedItems, refreshData }) {
   const restoreItem = async (id) => {
-    const response = await fetch(`${API_BASE}/items/${id}`, {
+    const response = await fetch(`${API_BASE}/items?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isDeleted: false })
@@ -435,7 +435,7 @@ function TrashBin({ deletedItems, refreshData }) {
 
   const permanentDelete = async (id) => {
     if (window.confirm('PERMANENTLY WIPE this record from MongoDB?')) {
-      const response = await fetch(`${API_BASE}/items/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${API_BASE}/items?id=${id}`, { method: 'DELETE' });
       if (response.ok) refreshData();
     }
   };
