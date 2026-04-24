@@ -10,10 +10,21 @@ const MONGODB_URI = process.env.MONGODB_URI;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Connect to MongoDB
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('CYBER-DB: CONNECTED TO MONGODB'))
-    .catch(err => console.error('CYBER-DB: CONNECTION ERROR', err));
+// Enhanced Connection Logic for Serverless
+let isConnected = false;
+const connectDB = async () => {
+    if (isConnected) return;
+    try {
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+        });
+        isConnected = true;
+        console.log('CYBER-DB: CLOUD UPLINK ESTABLISHED');
+    } catch (err) {
+        console.error('CYBER-DB: CONNECTION FAILED', err);
+        throw err;
+    }
+};
 
 // Define Schema
 const gatepassSchema = new mongoose.Schema({
@@ -26,6 +37,16 @@ const gatepassSchema = new mongoose.Schema({
 });
 
 const Gatepass = mongoose.models.Gatepass || mongoose.model('Gatepass', gatepassSchema);
+
+// Middleware to ensure DB connection
+app.use(async (req, req_res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        req_res.status(500).json({ error: 'DATABASE_CONNECTION_ERROR' });
+    }
+});
 
 // GET all items
 app.get('/api/items', async (req, res) => {
