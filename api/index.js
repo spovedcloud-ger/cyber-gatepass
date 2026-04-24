@@ -1,7 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import bodyParser from 'body-parser';
 
 const app = express();
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -9,12 +9,11 @@ const MONGODB_URI = process.env.MONGODB_URI;
 app.use(cors());
 app.use(bodyParser.json());
 
-// 1. DIAGNOSTIC ROUTE (Does not use Database)
 app.get('/api/test', (req, res) => {
     res.json({ 
-        status: 'SERVER_IS_ALIVE', 
+        status: 'SERVER_IS_ALIVE_MODERN', 
         has_uri: !!MONGODB_URI,
-        timestamp: new Date().toISOString()
+        time: new Date().toISOString()
     });
 });
 
@@ -22,7 +21,7 @@ let cachedDb = null;
 async function connectToDatabase() {
   if (cachedDb) return cachedDb;
   if (!MONGODB_URI) throw new Error('MONGODB_URI_MISSING');
-  cachedDb = mongoose.connect(MONGODB_URI).then(m => m);
+  cachedDb = await mongoose.connect(MONGODB_URI);
   return cachedDb;
 }
 
@@ -78,4 +77,4 @@ app.delete('/api/items/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-module.exports = app;
+export default app;
