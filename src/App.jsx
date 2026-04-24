@@ -5,6 +5,45 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link, useLocation 
 
 const API_BASE = '/api';
 
+function Toast({ message, type }) {
+  const colors = {
+    success: 'var(--success)',
+    warning: 'var(--warning)',
+    error: '#ef4444'
+  };
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9, y: 20 }}
+      style={{
+        position: 'fixed',
+        bottom: '2rem',
+        right: '2rem',
+        background: 'rgba(13, 17, 23, 0.95)',
+        borderLeft: `4px solid ${colors[type] || colors.success}`,
+        padding: '1rem 1.5rem',
+        borderRadius: '4px',
+        color: '#fff',
+        fontFamily: 'var(--font-display)',
+        fontSize: '0.8rem',
+        letterSpacing: '1px',
+        zIndex: 9999,
+        boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 15px ${colors[type] || colors.success}30`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderLeftWidth: '4px'
+      }}
+    >
+      <ShieldCheck size={16} style={{ color: colors[type] || colors.success }} />
+      <span style={{ textTransform: 'uppercase' }}>{message}</span>
+    </motion.div>
+  );
+}
+
 function LoginPage({ setIsLoggedIn }) {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
@@ -102,7 +141,7 @@ function Navigation({ handleLogout, deletedItemsCount }) {
   );
 }
 
-function GatepassTracker({ items, refreshData }) {
+function GatepassTracker({ items, refreshData, showToast }) {
   const [formData, setFormData] = useState({ title: '', assets: '' });
 
   const handleSubmit = async (e) => {
@@ -119,6 +158,7 @@ function GatepassTracker({ items, refreshData }) {
     if (response.ok) {
       setFormData({ title: '', assets: '' });
       refreshData();
+      showToast('RECORD UPLINK ESTABLISHED', 'success');
     }
   };
 
@@ -202,7 +242,7 @@ function GatepassTracker({ items, refreshData }) {
   );
 }
 
-function GateLogs({ items, refreshData }) {
+function GateLogs({ items, refreshData, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
   const [editModal, setEditModal] = useState({ show: false, item: null });
@@ -239,7 +279,7 @@ function GateLogs({ items, refreshData }) {
               })
             });
           }
-          alert('CLOUD SYNC: ALL RECORDS UPLOADED SUCCESSFULLY');
+          showToast('CLOUD SYNC: ALL RECORDS UPLOADED', 'success');
           refreshData();
         }
       } catch (err) { alert('ERROR: INVALID DATA FORMAT'); }
@@ -282,7 +322,10 @@ function GateLogs({ items, refreshData }) {
       body: JSON.stringify({ isDeleted: true })
     });
     
-    if (response.ok) refreshData();
+    if (response.ok) {
+      refreshData();
+      showToast('RECORD MOVED TO RECOVERY', 'warning');
+    }
     setDeleteConfirm({ show: false, id: null });
   };
 
@@ -299,6 +342,7 @@ function GateLogs({ items, refreshData }) {
     
     if (response.ok) {
       refreshData();
+      showToast('RECORD DATA MODIFIED', 'success');
       setEditModal({ show: false, item: null });
     }
   };
@@ -422,7 +466,7 @@ function GateLogs({ items, refreshData }) {
   );
 }
 
-function TrashBin({ deletedItems, refreshData }) {
+function TrashBin({ deletedItems, refreshData, showToast }) {
   const restoreItem = async (id) => {
     const response = await fetch(`${API_BASE}/items?id=${id}`, {
       method: 'PATCH',
@@ -430,13 +474,19 @@ function TrashBin({ deletedItems, refreshData }) {
       body: JSON.stringify({ isDeleted: false })
     });
     
-    if (response.ok) refreshData();
+    if (response.ok) {
+      refreshData();
+      showToast('RECORD RESTORED FROM TRASH', 'success');
+    }
   };
 
   const permanentDelete = async (id) => {
     if (window.confirm('PERMANENTLY WIPE this record from MongoDB?')) {
       const response = await fetch(`${API_BASE}/items?id=${id}`, { method: 'DELETE' });
-      if (response.ok) refreshData();
+      if (response.ok) {
+        refreshData();
+        showToast('RECORD PERMANENTLY WIPED', 'error');
+      }
     }
   };
 
@@ -498,6 +548,12 @@ function App() {
   const [deletedItems, setDeletedItems] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('gatepass_auth') === 'true');
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -530,11 +586,14 @@ function App() {
       {isLoggedIn && <Navigation handleLogout={handleLogout} deletedItemsCount={deletedItems.length} />}
       <Routes>
         <Route path="/login" element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/gatepass" />} />
-        <Route path="/gatepass" element={isLoggedIn ? <GatepassTracker items={items} refreshData={fetchData} /> : <Navigate to="/login" />} />
-        <Route path="/gatelogs" element={isLoggedIn ? <GateLogs items={items} refreshData={fetchData} /> : <Navigate to="/login" />} />
-        <Route path="/trash" element={isLoggedIn ? <TrashBin deletedItems={deletedItems} refreshData={fetchData} /> : <Navigate to="/login" />} />
+        <Route path="/gatepass" element={isLoggedIn ? <GatepassTracker items={items} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
+        <Route path="/gatelogs" element={isLoggedIn ? <GateLogs items={items} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
+        <Route path="/trash" element={isLoggedIn ? <TrashBin deletedItems={deletedItems} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to="/gatepass" />} />
       </Routes>
+      <AnimatePresence>
+        {toast.show && <Toast message={toast.message} type={toast.type} />}
+      </AnimatePresence>
     </BrowserRouter>
   );
 }
