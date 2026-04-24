@@ -459,14 +459,34 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
   };
 
   const permanentDelete = async (id) => {
-    if (window.confirm('PERMANENTLY WIPE this record from MongoDB?')) {
-      const response = await fetch(`${API_BASE}/items?id=${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        refreshData();
-        showToast('RECORD PERMANENTLY WIPED', 'error');
+    Swal.fire({
+      title: 'INITIATE DATA WIPE?',
+      text: "This action is irreversible. The record will be permanently erased from the MongoDB cloud.",
+      icon: 'warning',
+      iconColor: '#ef4444',
+      background: '#0d1117',
+      color: '#fff',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: 'rgba(255, 255, 255, 0.1)',
+      confirmButtonText: 'CONFIRM WIPE',
+      cancelButtonText: 'ABORT',
+      customClass: {
+        popup: 'cyber-swal-border',
+        title: 'cyber-swal-title',
+        confirmButton: 'cyber-btn-swal'
       }
-    }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const response = await fetch(`${API_BASE}/items?id=${id}`, { method: 'DELETE' });
+        if (response.ok) {
+          refreshData();
+          showToast('RECORD PERMANENTLY WIPED', 'error');
+        }
+      }
+    });
   };
+
 
   return (
     <div className="container">

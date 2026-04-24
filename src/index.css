@@ -623,6 +623,25 @@ input:focus, textarea:focus {
   letter-spacing: 1px;
 }
 
+/* SweetAlert2 Custom Styling */
+.cyber-swal-border {
+  border-top: 2px solid #ef4444 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+}
+
+.cyber-swal-title {
+  font-family: var(--font-display) !important;
+  color: #ef4444 !important;
+  letter-spacing: 2px !important;
+}
+
+.cyber-btn-swal {
+  font-family: var(--font-display) !important;
+  letter-spacing: 1px !important;
+  border-radius: 2px !important;
+  font-weight: 700 !important;
+}
+
 /* Mobile Responsive Enhancements */
 @media (max-width: 768px) {
   .container {
