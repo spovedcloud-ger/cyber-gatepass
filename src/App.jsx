@@ -2,47 +2,25 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Upload, Trash2, Printer, Plus, ShieldCheck, Search, ListFilter, ClipboardList, LayoutDashboard, RotateCcw, Ghost, Edit3, X } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const API_BASE = '/api';
 
-function Toast({ message, type }) {
-  const colors = {
-    success: 'var(--success)',
-    warning: 'var(--warning)',
-    error: '#ef4444'
-  };
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        background: 'rgba(13, 17, 23, 0.95)',
-        borderLeft: `4px solid ${colors[type] || colors.success}`,
-        padding: '1rem 1.5rem',
-        borderRadius: '4px',
-        color: '#fff',
-        fontFamily: 'var(--font-display)',
-        fontSize: '0.8rem',
-        letterSpacing: '1px',
-        zIndex: 9999,
-        boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 15px ${colors[type] || colors.success}30`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderLeftWidth: '4px'
-      }}
-    >
-      <ShieldCheck size={16} style={{ color: colors[type] || colors.success }} />
-      <span style={{ textTransform: 'uppercase' }}>{message}</span>
-    </motion.div>
-  );
-}
+const CyberAlert = Swal.mixin({
+  toast: true,
+  position: 'bottom-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  background: '#0d1117',
+  color: '#fff',
+  didOpen: (toast) => {
+    toast.style.borderLeft = '4px solid var(--accent)';
+    toast.style.fontFamily = 'var(--font-display)';
+    toast.style.fontSize = '0.8rem';
+    toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+  }
+});
 
 function LoginPage({ setIsLoggedIn }) {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -548,11 +526,18 @@ function App() {
   const [deletedItems, setDeletedItems] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('gatepass_auth') === 'true');
   const [isLoading, setIsLoading] = useState(true);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    const colors = { success: 'var(--success)', warning: 'var(--warning)', error: '#ef4444' };
+    CyberAlert.fire({
+      title: message,
+      icon: type,
+      iconColor: colors[type],
+      didOpen: (toast) => {
+        toast.style.borderLeft = `4px solid ${colors[type]}`;
+        toast.style.fontFamily = 'var(--font-display)';
+      }
+    });
   };
 
   const fetchData = async () => {
@@ -591,9 +576,6 @@ function App() {
         <Route path="/trash" element={isLoggedIn ? <TrashBin deletedItems={deletedItems} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to="/gatepass" />} />
       </Routes>
-      <AnimatePresence>
-        {toast.show && <Toast message={toast.message} type={toast.type} />}
-      </AnimatePresence>
     </BrowserRouter>
   );
 }
