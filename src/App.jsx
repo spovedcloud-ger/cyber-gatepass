@@ -207,6 +207,46 @@ function GateLogs({ items, refreshData }) {
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
   const [editModal, setEditModal] = useState({ show: false, item: null });
 
+  const exportData = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `gatepass_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        const dataArray = Array.isArray(imported) ? imported : (imported.items || []);
+        
+        if (dataArray.length > 0) {
+          for (const item of dataArray) {
+            await fetch(`${API_BASE}/items`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: item.title,
+                assets: item.assets,
+                status: item.status || 'In Process',
+                filedDate: item.timestamp || item.filedDate || new Date().toLocaleString()
+              })
+            });
+          }
+          alert('CLOUD SYNC: ALL RECORDS UPLOADED SUCCESSFULLY');
+          refreshData();
+        }
+      } catch (err) { alert('ERROR: INVALID DATA FORMAT'); }
+    };
+    reader.readAsText(file);
+  };
+
   const extractDate = (text) => {
     const dateRegex = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})|((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4})|(\d{4}-\d{2}-\d{2})/gi;
     const match = text.match(dateRegex);
@@ -282,6 +322,11 @@ function GateLogs({ items, refreshData }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className="action-group" style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-sm" onClick={exportData} title="Backup Database"><Download size={14} /> BACKUP</button>
+            <button className="btn-sm" onClick={() => document.getElementById('importFile').click()} title="Restore Database"><Upload size={14} /> RESTORE</button>
+            <input type="file" id="importFile" style={{ display: 'none' }} accept=".json" onChange={handleImport} />
           </div>
         </div>
 
