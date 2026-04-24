@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Upload, Trash2, Printer, Plus, ShieldCheck, Search, ListFilter, ClipboardList, LayoutDashboard, RotateCcw, Ghost } from 'lucide-react';
+import { Download, Upload, Trash2, Printer, Plus, ShieldCheck, Search, ListFilter, ClipboardList, LayoutDashboard, RotateCcw, Ghost, Edit3, X } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
 
-const API_BASE = `http://${window.location.hostname}:5001/api`;
+const API_BASE = '/api';
 
 function LoginPage({ setIsLoggedIn }) {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -86,7 +86,7 @@ function Navigation({ handleLogout, deletedItemsCount }) {
             STATUS CHECK
           </Link>
           <Link to="/trash" className={location.pathname === '/trash' ? 'active' : ''}>
-            {deletedItemsCount > 0 ? `RECOVERY HUB (${deletedItemsCount})` : 'QUARANTINE'}
+            {deletedItemsCount > 0 ? `RECOVERY HUB (${deletedItemsCount})` : 'RECOVERY'}
           </Link>
         </div>
 
@@ -104,7 +104,6 @@ function Navigation({ handleLogout, deletedItemsCount }) {
 
 function GatepassTracker({ items, refreshData }) {
   const [formData, setFormData] = useState({ title: '', assets: '' });
-  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -121,21 +120,6 @@ function GatepassTracker({ items, refreshData }) {
       setFormData({ title: '', assets: '' });
       refreshData();
     }
-  };
-
-  const deleteItem = (id) => setDeleteConfirm({ show: true, id });
-  
-  const confirmDelete = async () => {
-    const response = await fetch(`${API_BASE}/items/${deleteConfirm.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isDeleted: true })
-    });
-    
-    if (response.ok) {
-      refreshData();
-    }
-    setDeleteConfirm({ show: false, id: null });
   };
 
   return (
@@ -206,9 +190,6 @@ function GatepassTracker({ items, refreshData }) {
                     <div className="item-details">{item.assets}</div>
                     <div className="item-footer">
                       <span>{item.filedDate}</span>
-                      <div className="action-group">
-                        <span onClick={() => deleteItem(item._id)} style={{ cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></span>
-                      </div>
                     </div>
                   </motion.div>
                 ))
@@ -217,20 +198,6 @@ function GatepassTracker({ items, refreshData }) {
           </div>
         </main>
       </div>
-
-      <AnimatePresence>
-        {deleteConfirm.show && (
-          <div className="modal-overlay">
-            <motion.div className="modal-content glass-card" initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: '1rem' }}>Move to Trash?</h3>
-              <div className="modal-actions">
-                <button className="btn-sm" onClick={() => setDeleteConfirm({ show: false, id: null })}>Cancel</button>
-                <button className="cyber-btn" style={{ width: 'auto', padding: '0.75rem 2rem', background: '#ef4444' }} onClick={confirmDelete}>Confirm</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -238,6 +205,7 @@ function GatepassTracker({ items, refreshData }) {
 function GateLogs({ items, refreshData }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
+  const [editModal, setEditModal] = useState({ show: false, item: null });
 
   const extractDate = (text) => {
     const dateRegex = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})|((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4})|(\d{4}-\d{2}-\d{2})/gi;
@@ -276,6 +244,23 @@ function GateLogs({ items, refreshData }) {
     
     if (response.ok) refreshData();
     setDeleteConfirm({ show: false, id: null });
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    const response = await fetch(`${API_BASE}/items/${editModal.item._id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: editModal.item.title,
+        assets: editModal.item.assets
+      })
+    });
+    
+    if (response.ok) {
+      refreshData();
+      setEditModal({ show: false, item: null });
+    }
   };
 
   return (
@@ -328,6 +313,7 @@ function GateLogs({ items, refreshData }) {
                   <td style={{ fontSize: '0.8rem' }}>{item.filedDate}</td>
                   <td>
                     <div className="action-group">
+                      <button onClick={() => setEditModal({ show: true, item })} className="icon-btn" title="Edit Entry"><Edit3 size={14} /></button>
                       <button onClick={() => window.print()} className="icon-btn"><Printer size={14} /></button>
                       <button onClick={() => deleteItem(item._id)} className="icon-btn text-danger"><Trash2 size={14} /></button>
                     </div>
@@ -343,11 +329,46 @@ function GateLogs({ items, refreshData }) {
         {deleteConfirm.show && (
           <div className="modal-overlay">
             <motion.div className="modal-content glass-card" initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: '1rem' }}>Move to Trash?</h3>
+              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--accent)', marginBottom: '1rem' }}>Move to Recovery?</h3>
               <div className="modal-actions">
                 <button className="btn-sm" onClick={() => setDeleteConfirm({ show: false, id: null })}>Cancel</button>
                 <button className="cyber-btn" style={{ width: 'auto', padding: '0.75rem 2rem', background: '#ef4444' }} onClick={confirmDelete}>Confirm</button>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {editModal.show && (
+          <div className="modal-overlay">
+            <motion.div className="modal-content glass-card" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} style={{ maxWidth: '600px', width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--accent)' }}>Edit Record</h3>
+                <X style={{ cursor: 'pointer', opacity: 0.5 }} onClick={() => setEditModal({ show: false, item: null })} />
+              </div>
+              <form onSubmit={handleEditSave}>
+                <div className="form-group">
+                  <label>Title / Subject</label>
+                  <input 
+                    type="text" 
+                    value={editModal.item.title}
+                    onChange={(e) => setEditModal({ ...editModal, item: { ...editModal.item, title: e.target.value } })}
+                    required 
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Asset Details</label>
+                  <textarea 
+                    rows="8" 
+                    value={editModal.item.assets}
+                    onChange={(e) => setEditModal({ ...editModal, item: { ...editModal.item, assets: e.target.value } })}
+                    required 
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn-sm" onClick={() => setEditModal({ show: false, item: null })}>Cancel</button>
+                  <button type="submit" className="cyber-btn" style={{ width: 'auto', padding: '0.75rem 2rem' }}>Save Changes</button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
@@ -379,15 +400,15 @@ function TrashBin({ deletedItems, refreshData }) {
       <div className="bg-grid" />
       <div className="bg-glow" />
       <header>
-        <h1 style={{ color: '#ef4444' }}>Trash Bin</h1>
-        <p className="subtitle">Secure Quarantine Zone for Deleted Records</p>
+        <h1 style={{ color: '#ef4444' }}>Recovery Center</h1>
+        <p className="subtitle">Secure Management for Archived Records</p>
       </header>
 
       <main>
         {deletedItems.length === 0 ? (
           <div className="empty-state glass-card" style={{ padding: '5rem' }}>
             <Ghost size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-            <p>Quarantine zone empty. No records detected.</p>
+            <p>Recovery center empty. No archived records detected.</p>
           </div>
         ) : (
           <div className="log-table-container glass-card">
