@@ -695,20 +695,38 @@ input:focus, textarea:focus {
     padding: 0.6rem 1rem;
   }
 
+  .log-table-container {
+    padding: 0;
+    margin: 0 -1.5rem;
+    width: calc(100% + 3rem);
+    border-radius: 0;
+    -webkit-overflow-scrolling: touch;
+    border-left: none;
+    border-right: none;
+  }
+
   .log-table th {
-    padding: 1rem 0.5rem;
+    padding: 1rem 0.75rem;
     font-size: 0.65rem;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .log-table td {
-    padding: 0.75rem 0.5rem;
+    padding: 0.75rem;
     font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  
+  /* Allow the Asset Details to wrap but set a minimum width */
+  .log-table td:nth-child(5) {
+    white-space: pre-wrap;
+    min-width: 250px;
   }
 
   .action-group {
-    flex-wrap: wrap;
-    gap: 0.25rem;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
   }
   
   .cyber-btn {
