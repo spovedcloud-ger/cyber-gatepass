@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Trash2, RotateCcw, ShieldCheck, Download, Upload, ListFilter, Edit3, X, Printer, Ghost } from 'lucide-react';
 import Swal from 'sweetalert2';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 const CyberAlert = Swal.mixin({
   toast: true,
