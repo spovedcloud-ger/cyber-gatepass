@@ -20,6 +20,8 @@ const CyberAlert = Swal.mixin({
   }
 });
 
+
+
 function LoginPage({ setIsLoggedIn }) {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
@@ -100,6 +102,9 @@ function Navigation({ handleLogout, deletedItemsCount }) {
           </Link>
           <Link to="/gatelogs" className={location.pathname === '/gatelogs' ? 'active' : ''}>
             STATUS CHECK
+          </Link>
+          <Link to="/gategraph" className={location.pathname === '/gategraph' ? 'active' : ''}>
+            ANALYTICS
           </Link>
           <Link to="/trash" className={location.pathname === '/trash' ? 'active' : ''}>
             {deletedItemsCount > 0 ? `RECOVERY HUB (${deletedItemsCount})` : 'RECOVERY'}
@@ -568,6 +573,79 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
   );
 }
 
+function GateGraph({ items }) {
+  const stats = useMemo(() => {
+    const counts = {};
+    items.forEach(item => {
+      const match = item.title.match(/\((.*?)\)/);
+      const name = match ? match[1] : 'Unknown/General';
+      counts[name] = (counts[name] || 0) + 1;
+    });
+
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return {
+      total: items.length,
+      byUser: sorted,
+      highest: sorted[0] || ['N/A', 0],
+      lowest: sorted[sorted.length - 1] || ['N/A', 0]
+    };
+  }, [items]);
+
+  return (
+    <div className="container">
+      <div className="bg-grid" />
+      <div className="bg-glow" />
+      <header>
+        <h1>Operational Analytics</h1>
+        <p className="subtitle">Gatepass Distribution & Personnel Metrics</p>
+      </header>
+
+      <main className="single-column-layout">
+        <div className="stats-grid">
+           <div className="glass-card stat-item">
+              <label>Total Gatepasses</label>
+              <div className="stat-value text-accent">{stats.total}</div>
+           </div>
+           <div className="glass-card stat-item">
+              <label>Highest Volume</label>
+              <div className="stat-value text-info" style={{ fontSize: '1rem' }}>{stats.highest[0]}</div>
+              <small className="text-secondary">{stats.highest[1]} records</small>
+           </div>
+           <div className="glass-card stat-item">
+              <label>Lowest Volume</label>
+              <div className="stat-value text-danger" style={{ fontSize: '1rem' }}>{stats.lowest[0]}</div>
+              <small className="text-secondary">{stats.lowest[1]} records</small>
+           </div>
+        </div>
+
+        <div className="glass-card" style={{ marginTop: '2rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', marginBottom: '2.5rem', color: 'var(--accent)', letterSpacing: '2px' }}>PERSONNEL DISTRIBUTION</h2>
+          <div className="graph-container">
+            {stats.byUser.length === 0 ? (
+               <p className="empty-state">Insufficient data for visualization.</p>
+            ) : (
+              stats.byUser.map(([name, count]) => (
+                <div key={name} className="graph-row">
+                  <div className="graph-label" title={name}>{name}</div>
+                  <div className="graph-bar-wrapper">
+                    <motion.div 
+                      className="graph-bar"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(count / stats.highest[1]) * 100}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                    />
+                    <span className="graph-count">{count}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function App() {
   const [items, setItems] = useState([]);
   const [deletedItems, setDeletedItems] = useState([]);
@@ -620,6 +698,7 @@ function App() {
         <Route path="/login" element={!isLoggedIn ? <LoginPage setIsLoggedIn={setIsLoggedIn} /> : <Navigate to="/gatepass" />} />
         <Route path="/gatepass" element={isLoggedIn ? <GatepassTracker items={items} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
         <Route path="/gatelogs" element={isLoggedIn ? <GateLogs items={items} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
+        <Route path="/gategraph" element={isLoggedIn ? <GateGraph items={items} /> : <Navigate to="/login" />} />
         <Route path="/trash" element={isLoggedIn ? <TrashBin deletedItems={deletedItems} refreshData={fetchData} showToast={showToast} /> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to="/gatepass" />} />
       </Routes>

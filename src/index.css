@@ -889,3 +889,76 @@ textarea:focus {
     color: black !important;
   }
 }
+
+/* Analytics & Graph Styles */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1.5rem !important;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin: 0.75rem 0;
+  text-transform: uppercase;
+}
+
+.graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.graph-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.graph-label {
+  width: 140px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.graph-bar-wrapper {
+  flex: 1;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+}
+
+.graph-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--info));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.graph-count {
+  margin-left: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  color: var(--accent);
+}
