@@ -776,13 +776,15 @@ function App() {
         style={{ 
           fontFamily: 'var(--font-display)', 
           color: 'var(--accent)', 
-          letterSpacing: '4px', 
-          fontSize: '1rem', 
-          textShadow: '0 0 10px var(--accent-glow)',
-          textAlign: 'center'
+          letterSpacing: '6px', 
+          fontSize: '1.5rem', 
+          fontWeight: '900',
+          textShadow: '0 0 20px var(--accent-glow)',
+          textAlign: 'center',
+          textTransform: 'uppercase'
         }}
       >
-        SYNCHRONIZING SECURE LEDGER...
+        SYNCHRONIZING CYBER GATEPASS...
       </motion.div>
       <div style={{ width: '300px', height: '2px', background: 'rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}>
         <motion.div 
