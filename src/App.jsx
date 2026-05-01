@@ -226,8 +226,30 @@ function GatepassTracker({ items, refreshData, showToast }) {
 
 function GateLogs({ items, refreshData, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('ALL');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
   const [editModal, setEditModal] = useState({ show: false, item: null });
+
+  // Fixed Year Range: 2014 to current
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const range = [];
+    for (let y = currentYear; y >= 2014; y--) {
+      range.push(y.toString());
+    }
+    return range;
+  }, []);
+
+  // Set initial year to current year
+  useEffect(() => {
+    if (selectedYear === 'ALL' && years.length > 0) {
+      setSelectedYear(new Date().getFullYear().toString());
+    }
+  }, [years]);
+
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
   const exportData = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items));
@@ -271,13 +293,22 @@ function GateLogs({ items, refreshData, showToast }) {
   const itemsPerPage = 10;
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.assets.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.filedDate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item._id.includes(searchTerm)
-    );
-  }, [items, searchTerm]);
+    return items.filter(item => {
+      const date = item.createdAt ? new Date(item.createdAt) : new Date(item.filedDate);
+      const itemMonth = date.toLocaleString('default', { month: 'short' }).toUpperCase();
+      const itemYear = date.getFullYear().toString();
+      
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.assets.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.filedDate.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item._id.includes(searchTerm);
+      
+      const matchesMonth = selectedMonth === 'ALL' || itemMonth === selectedMonth;
+      const matchesYear = selectedYear === 'ALL' || itemYear === selectedYear;
+
+      return matchesSearch && matchesMonth && matchesYear;
+    });
+  }, [items, searchTerm, selectedMonth, selectedYear]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -288,7 +319,7 @@ function GateLogs({ items, refreshData, showToast }) {
   // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedMonth, selectedYear]);
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'In Process' ? 'Completed' : 'In Process';
@@ -372,16 +403,72 @@ function GateLogs({ items, refreshData, showToast }) {
       </header>
 
       <main>
-        <div className="tracking-header glass-card" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="tracking-header glass-card" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', overflow: 'visible', position: 'relative', zIndex: 100 }}>
           <div className="search-bar" style={{ flex: 1, marginBottom: 0 }}>
             <Search size={18} className="text-secondary" />
             <input 
               type="text" 
-              placeholder="Search by name, date, ref ID..." 
+              placeholder="Search records..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <div style={{ position: 'relative', zIndex: showFilterModal ? 9999 : 1 }}>
+            <button 
+              className={`btn-sm ${selectedMonth !== 'ALL' || selectedYear !== 'ALL' ? 'active-filter' : ''} ${showFilterModal ? 'filter-active' : ''}`}
+              onClick={() => setShowFilterModal(!showFilterModal)}
+              style={{ minWidth: '130px', justifyContent: 'center', gap: '0.75rem' }}
+            >
+              <ListFilter size={16} /> 
+              <span>Filter</span>
+            </button>
+
+            <AnimatePresence>
+              {showFilterModal && (
+                <>
+                  <div className="filter-overlay-transparent" onClick={() => setShowFilterModal(false)} />
+                  <motion.div 
+                    className="glass-card mini-calendar-popover"
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    style={{ zIndex: 10000 }}
+                  >
+                    <div className="popover-header">
+                      <label>PERIOD FILTER</label>
+                      <X size={14} onClick={() => setShowFilterModal(false)} style={{ cursor: 'pointer' }} />
+                    </div>
+
+                    <div className="popover-section">
+                      <select 
+                        value={selectedYear} 
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                        className="popover-year-select"
+                      >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="popover-grid">
+                      {months.map(m => (
+                        <button 
+                          key={m} 
+                          className={`popover-month ${selectedMonth === m ? 'active' : ''}`}
+                          onClick={() => { setSelectedMonth(m); setShowFilterModal(false); }}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button className="popover-reset" onClick={() => { setSelectedMonth('ALL'); setSelectedYear(new Date().getFullYear().toString()); setShowFilterModal(false); }}>RESET ALL</button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div className="action-group" style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn-sm" onClick={exportData} title="Backup Database"><Download size={14} /> BACKUP</button>
             <button className="btn-sm" onClick={() => document.getElementById('importFile').click()} title="Restore Database"><Upload size={14} /> RESTORE</button>
@@ -389,7 +476,7 @@ function GateLogs({ items, refreshData, showToast }) {
           </div>
         </div>
 
-        <div className="log-table-container glass-card">
+        <div className="log-table-container glass-card" style={{ position: 'relative', zIndex: 1 }}>
           <table className="log-table">
             <thead>
               <tr>
@@ -499,6 +586,8 @@ function GateLogs({ items, refreshData, showToast }) {
           </div>
         )}
       </AnimatePresence>
+
+
     </div>
   );
 }
