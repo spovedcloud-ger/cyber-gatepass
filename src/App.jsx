@@ -658,25 +658,36 @@ function GateGraph({ items }) {
             {stats.byMonth.length === 0 ? (
                <p className="empty-state">No historical data available for trend analysis.</p>
             ) : (
-              stats.byMonth.map(([month, count]) => (
-                <div key={month} className="graph-row">
-                  <div className="graph-label">{month}</div>
-                  <div className="graph-bar-wrapper">
-                    <motion.div 
-                      className="graph-bar"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(count / stats.maxVol) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      style={{ 
-                        background: month === stats.currentMonthLabel 
-                          ? 'linear-gradient(90deg, var(--accent), var(--success))' 
-                          : 'linear-gradient(90deg, #3b82f6, #1d4ed8)' 
-                      }}
-                    />
-                    <span className="graph-count">{count}</span>
+              stats.byMonth.map(([month, count], index) => {
+                const colors = ['#00f2ff', '#9d00ff', '#ff00e5', '#3b82f6', '#6366f1'];
+                const barColor = colors[index % colors.length];
+                const isCurrentMonth = month === stats.currentMonthLabel;
+
+                return (
+                  <div key={month} className="graph-row">
+                    <div className="graph-label" style={{ color: isCurrentMonth ? 'var(--success)' : 'var(--text-secondary)' }}>
+                      {month} {isCurrentMonth && '•'}
+                    </div>
+                    <div className="graph-bar-wrapper">
+                      <motion.div 
+                        className="graph-bar"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(count / stats.maxVol) * 100}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        style={{ 
+                          background: isCurrentMonth 
+                            ? 'linear-gradient(90deg, var(--success), #00ffaa)' 
+                            : `linear-gradient(90deg, ${barColor}, #2a2a2a)`,
+                          boxShadow: isCurrentMonth 
+                            ? '0 0 15px rgba(0, 255, 170, 0.3)' 
+                            : `0 0 10px ${barColor}44`
+                        }}
+                      />
+                      <span className="graph-count" style={{ color: isCurrentMonth ? 'var(--success)' : barColor }}>{count}</span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
