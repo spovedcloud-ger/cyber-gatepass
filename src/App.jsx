@@ -591,6 +591,10 @@ function GateGraph({ items }) {
     // Sort months chronologically for the graph
     const sortedMonths = Object.entries(monthCounts).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     
+    // Status Counts
+    const inProcessCount = items.filter(i => i.status === 'In Process').length;
+    const completedCount = items.filter(i => i.status === 'Completed').length;
+    
     // Find highest and lowest volume months
     const volumes = Object.values(monthCounts);
     const maxVol = volumes.length > 0 ? Math.max(...volumes) : 0;
@@ -604,7 +608,9 @@ function GateGraph({ items }) {
       currentMonthLabel: currentMonthKey,
       peakMonth: peakMonth,
       byMonth: sortedMonths,
-      maxVol: maxVol
+      maxVol: maxVol,
+      inProcess: inProcessCount,
+      completed: completedCount
     };
   }, [items]);
 
@@ -618,11 +624,21 @@ function GateGraph({ items }) {
       </header>
 
       <main className="single-column-layout">
-        <div className="stats-grid">
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
            <div className="glass-card stat-item">
               <label>This Month ({stats.currentMonthLabel})</label>
               <div className="stat-value text-accent">{stats.currentMonth}</div>
               <small className="text-secondary">Records filed</small>
+           </div>
+           <div className="glass-card stat-item">
+              <label>In Process</label>
+              <div className="stat-value text-warning">{stats.inProcess}</div>
+              <small className="text-secondary">Active authorizations</small>
+           </div>
+           <div className="glass-card stat-item">
+              <label>Completed</label>
+              <div className="stat-value text-success">{stats.completed}</div>
+              <small className="text-secondary">Closed records</small>
            </div>
            <div className="glass-card stat-item">
               <label>Peak Activity</label>
