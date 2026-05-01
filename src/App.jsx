@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Upload, Trash2, Printer, Plus, ShieldCheck, Search, ListFilter, ClipboardList, LayoutDashboard, RotateCcw, Ghost, Edit3, X } from 'lucide-react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Plus, Search, Trash2, RotateCcw, ShieldCheck, Download, Upload, ListFilter, Edit3, X, Printer, Ghost } from 'lucide-react';
 import Swal from 'sweetalert2';
 
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const CyberAlert = Swal.mixin({
   toast: true,
-  position: 'bottom-end',
+  position: 'top-end',
   showConfirmButton: false,
   timer: 3000,
   timerProgressBar: true,
-  background: '#0d1117',
-  color: '#fff',
+  background: '#ffffff',
+  color: '#0f172a',
   didOpen: (toast) => {
     toast.style.borderLeft = '4px solid var(--accent)';
     toast.style.fontFamily = 'var(--font-display)';
-    toast.style.fontSize = '0.8rem';
-    toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
   }
 });
 
@@ -87,6 +85,7 @@ function LoginPage({ setIsLoggedIn }) {
 
 function Navigation({ handleLogout, deletedItemsCount }) {
   const location = useLocation();
+  
   return (
     <nav className="main-nav">
       <div className="nav-container">
@@ -207,7 +206,7 @@ function GatepassTracker({ items, refreshData, showToast }) {
                     <div className="item-title">{item.title}</div>
                     <div className="item-details">{item.assets}</div>
                     <div className="item-footer">
-                      <span>{item.filedDate}</span>
+                      <span style={{ fontStyle: 'italic' }}>{item.filedDate}</span>
                     </div>
                   </motion.div>
                 ))
@@ -229,10 +228,11 @@ function GateLogs({ items, refreshData, showToast }) {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `gatepass_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchorNode.setAttribute("download", `gatepass_backup_${new Date().toLocaleDateString()}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    showToast('DATABASE BACKUP GENERATED', 'success');
   };
 
   const handleImport = async (e) => {
@@ -241,35 +241,29 @@ function GateLogs({ items, refreshData, showToast }) {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const imported = JSON.parse(event.target.result);
-        const dataArray = Array.isArray(imported) ? imported : (imported.items || []);
-        
-        if (dataArray.length > 0) {
-          for (const item of dataArray) {
-            await fetch(`${API_BASE}/items`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                title: item.title,
-                assets: item.assets,
-                status: item.status || 'In Process',
-                filedDate: item.timestamp || item.filedDate || new Date().toLocaleString()
-              })
-            });
-          }
-          showToast('CLOUD SYNC: ALL RECORDS UPLOADED', 'success');
+        const data = JSON.parse(event.target.result);
+        const response = await fetch(`${API_BASE}/items/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (response.ok) {
           refreshData();
+          showToast('DATABASE RESTORED', 'success');
         }
-      } catch (err) { alert('ERROR: INVALID DATA FORMAT'); }
+      } catch (err) { showToast('INVALID BACKUP FILE', 'error'); }
     };
     reader.readAsText(file);
   };
 
   const extractDate = (text) => {
-    const dateRegex = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})|((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4})|(\d{4}-\d{2}-\d{2})/gi;
+    const dateRegex = /\d{2}\/\d{2}\/\d{4}/;
     const match = text.match(dateRegex);
     return match ? match[0] : 'N/A';
   };
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredItems = useMemo(() => {
     return items.filter(item => 
@@ -279,6 +273,17 @@ function GateLogs({ items, refreshData, showToast }) {
       item._id.includes(searchTerm)
     );
   }, [items, searchTerm]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'In Process' ? 'Completed' : 'In Process';
@@ -366,7 +371,7 @@ function GateLogs({ items, refreshData, showToast }) {
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map(item => (
+              {currentItems.map(item => (
                 <tr key={item._id} className="log-row">
                   <td>
                     <span className={`status-dot ${item.status.toLowerCase().replace(' ', '-')}`} onClick={() => toggleStatus(item._id, item.status)}>
@@ -376,8 +381,8 @@ function GateLogs({ items, refreshData, showToast }) {
                   <td className="text-secondary" style={{ fontSize: '0.6rem' }}>{item._id}</td>
                   <td className="text-accent">{item.title}</td>
                   <td className="text-info" style={{ fontWeight: 'bold' }}>{extractDate(item.title + ' ' + item.assets)}</td>
-                  <td className="text-secondary" style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>{item.assets}</td>
-                  <td style={{ fontSize: '0.8rem' }}>{item.filedDate}</td>
+                  <td className="text-primary" style={{ fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{item.assets}</td>
+                  <td style={{ fontSize: '0.8rem', fontStyle: 'italic' }}>{item.filedDate}</td>
                   <td>
                     <div className="action-group">
                       <button onClick={() => setEditModal({ show: true, item })} className="icon-btn" title="Edit Entry"><Edit3 size={14} /></button>
@@ -390,6 +395,28 @@ function GateLogs({ items, refreshData, showToast }) {
             </tbody>
           </table>
         </div>
+
+        {filteredItems.length > itemsPerPage && (
+          <div className="pagination-container">
+            <button 
+              className="pagination-btn" 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              PREV
+            </button>
+            <div className="page-indicator">
+              PAGE <span className="text-accent">{currentPage}</span> OF {totalPages}
+            </div>
+            <button 
+              className="pagination-btn" 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              NEXT
+            </button>
+          </div>
+        )}
       </main>
 
       <AnimatePresence>
@@ -465,7 +492,7 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
       icon: 'warning',
       iconColor: '#ef4444',
       background: '#0d1117',
-      color: '#fff',
+      color: '#ffffff',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       cancelButtonColor: 'rgba(255, 255, 255, 0.1)',
@@ -493,7 +520,7 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
       <div className="bg-grid" />
       <div className="bg-glow" />
       <header>
-        <h1 style={{ color: '#ef4444' }}>Recovery Center</h1>
+        <h1>Recovery Center</h1>
         <p className="subtitle">Secure Management for Archived Records</p>
       </header>
 
@@ -519,7 +546,7 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
                   <tr key={item._id} className="log-row">
                     <td className="text-secondary" style={{ fontSize: '0.6rem' }}>{item._id}</td>
                     <td className="text-accent">{item.title}</td>
-                    <td>{item.filedDate}</td>
+                    <td style={{ fontStyle: 'italic' }}>{item.filedDate}</td>
                     <td>
                       <div className="action-group">
                         <button onClick={() => restoreItem(item._id)} className="btn-sm" style={{ color: 'var(--success)', borderColor: 'var(--success)' }}>
