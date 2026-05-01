@@ -625,29 +625,29 @@ function GateGraph({ items }) {
 
       <main className="single-column-layout">
         <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-           <div className="glass-card stat-item">
-              <label>This Month ({stats.currentMonthLabel})</label>
+           <div className="glass-card stat-item" style={{ borderTop: '2px solid var(--accent)', boxShadow: '0 -5px 15px rgba(0, 242, 255, 0.1)' }}>
+              <label style={{ color: 'var(--accent)' }}>This Month ({stats.currentMonthLabel})</label>
               <div className="stat-value text-accent">{stats.currentMonth}</div>
               <small className="text-secondary">Records filed</small>
            </div>
-           <div className="glass-card stat-item">
-              <label>In Process</label>
+           <div className="glass-card stat-item" style={{ borderTop: '2px solid var(--warning)', boxShadow: '0 -5px 15px rgba(255, 170, 0, 0.1)' }}>
+              <label style={{ color: 'var(--warning)' }}>In Process</label>
               <div className="stat-value text-warning">{stats.inProcess}</div>
               <small className="text-secondary">Active authorizations</small>
            </div>
-           <div className="glass-card stat-item">
-              <label>Completed</label>
+           <div className="glass-card stat-item" style={{ borderTop: '2px solid var(--success)', boxShadow: '0 -5px 15px rgba(0, 255, 170, 0.1)' }}>
+              <label style={{ color: 'var(--success)' }}>Completed</label>
               <div className="stat-value text-success">{stats.completed}</div>
               <small className="text-secondary">Closed records</small>
            </div>
-           <div className="glass-card stat-item">
-              <label>Peak Activity</label>
-              <div className="stat-value text-info" style={{ fontSize: '1rem' }}>{stats.peakMonth[0]}</div>
+           <div className="glass-card stat-item" style={{ borderTop: '2px solid var(--neon-purple)', boxShadow: '0 -5px 15px rgba(157, 0, 255, 0.1)' }}>
+              <label style={{ color: 'var(--neon-purple)' }}>Peak Activity</label>
+              <div className="stat-value" style={{ color: 'var(--neon-purple)', fontSize: '1rem' }}>{stats.peakMonth[0]}</div>
               <small className="text-secondary">{stats.peakMonth[1]} records</small>
            </div>
-           <div className="glass-card stat-item">
-              <label>Total Archive</label>
-              <div className="stat-value text-primary">{stats.total}</div>
+           <div className="glass-card stat-item" style={{ borderTop: '2px solid var(--neon-pink)', boxShadow: '0 -5px 15px rgba(255, 0, 229, 0.1)' }}>
+              <label style={{ color: 'var(--neon-pink)' }}>Total Archive</label>
+              <div className="stat-value" style={{ color: 'var(--neon-pink)' }}>{stats.total}</div>
               <small className="text-secondary">All-time logs</small>
            </div>
         </div>
