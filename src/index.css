@@ -660,6 +660,7 @@ textarea:focus {
   letter-spacing: 1px !important;
   border-radius: 2px !important;
   font-weight: 700 !important;
+  color: #000 !important;
 }
 
 /* Mobile Responsive Enhancements */

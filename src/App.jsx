@@ -292,13 +292,40 @@ function GateLogs({ items, refreshData, showToast }) {
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'In Process' ? 'Completed' : 'In Process';
-    const response = await fetch(`${API_BASE}/items?id=${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    });
     
-    if (response.ok) refreshData();
+    const getStatusColor = (status) => status === 'In Process' ? 'var(--warning)' : 'var(--success)';
+    
+    Swal.fire({
+      title: 'UPDATE STATUS?',
+      html: `Are you sure you want to change the status from <br/> <b style="color: ${getStatusColor(currentStatus)}">[${currentStatus.toUpperCase()}]</b> to <b style="color: ${getStatusColor(newStatus)}">[${newStatus.toUpperCase()}]</b>?`,
+      icon: 'question',
+      iconColor: 'var(--accent)',
+      background: '#0d1117',
+      color: '#ffffff',
+      showCancelButton: true,
+      confirmButtonColor: 'var(--accent)',
+      cancelButtonColor: 'rgba(255, 255, 255, 0.1)',
+      confirmButtonText: 'CONFIRM UPDATE',
+      cancelButtonText: 'ABORT',
+      customClass: {
+        popup: 'cyber-swal-border',
+        title: 'cyber-swal-title',
+        confirmButton: 'cyber-btn-swal'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const response = await fetch(`${API_BASE}/items?id=${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.ok) {
+          refreshData();
+          showToast(`STATUS UPDATED TO ${newStatus.toUpperCase()}`, 'success');
+        }
+      }
+    });
   };
 
   const deleteItem = (id) => setDeleteConfirm({ show: true, id });
