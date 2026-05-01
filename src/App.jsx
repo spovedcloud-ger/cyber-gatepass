@@ -766,7 +766,39 @@ function App() {
     localStorage.removeItem('gatepass_auth');
   };
 
-  if (isLoading) return <div className="login-screen">INITIALIZING MONGODB UPLINK...</div>;
+  if (isLoading) return (
+    <div className="login-screen" style={{ flexDirection: 'column', gap: '2rem' }}>
+      <div className="bg-grid" />
+      <div className="bg-glow" />
+      <motion.div 
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        style={{ 
+          fontFamily: 'var(--font-display)', 
+          color: 'var(--accent)', 
+          letterSpacing: '4px', 
+          fontSize: '1rem', 
+          textShadow: '0 0 10px var(--accent-glow)',
+          textAlign: 'center'
+        }}
+      >
+        SYNCHRONIZING SECURE LEDGER...
+      </motion.div>
+      <div style={{ width: '300px', height: '2px', background: 'rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}>
+        <motion.div 
+          animate={{ left: ['-100%', '100%'] }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          style={{ 
+            position: 'absolute',
+            width: '100%', 
+            height: '100%', 
+            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
+            boxShadow: '0 0 15px var(--accent)' 
+          }}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <BrowserRouter>
