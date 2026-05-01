@@ -728,6 +728,8 @@ function App() {
   const [deletedItems, setDeletedItems] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('gatepass_auth') === 'true');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const showToast = (message, type = 'success') => {
     const colors = { success: 'var(--success)', warning: 'var(--warning)', error: '#ef4444' };
@@ -753,17 +755,37 @@ function App() {
       setItems(itemsData);
       setDeletedItems(trashData);
     } catch (err) { console.error('API ERROR:', err); }
-    setIsLoading(false);
+    setDataLoaded(true);
   };
 
   useEffect(() => {
-    if (isLoggedIn) fetchData();
-    else setIsLoading(false);
+    if (isLoggedIn) {
+      fetchData();
+      const interval = setInterval(() => {
+        setLoadProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + Math.floor(Math.random() * 10) + 1;
+        });
+      }, 150);
+    } else {
+      setIsLoading(false);
+    }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (dataLoaded && loadProgress === 100) {
+      setTimeout(() => setIsLoading(false), 500);
+    }
+  }, [dataLoaded, loadProgress]);
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     localStorage.removeItem('gatepass_auth');
+    setLoadProgress(0);
+    setDataLoaded(false);
   };
 
   if (isLoading) return (
@@ -786,18 +808,23 @@ function App() {
       >
         SYNCHRONIZING CYBER GATEPASS...
       </motion.div>
-      <div style={{ width: '300px', height: '2px', background: 'rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}>
-        <motion.div 
-          animate={{ left: ['-100%', '100%'] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          style={{ 
-            position: 'absolute',
-            width: '100%', 
-            height: '100%', 
-            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
-            boxShadow: '0 0 15px var(--accent)' 
-          }}
-        />
+      
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ width: '350px', height: '4px', background: 'rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <motion.div 
+            initial={{ width: '0%' }}
+            animate={{ width: `${loadProgress}%` }}
+            transition={{ type: 'spring', stiffness: 50 }}
+            style={{ 
+              height: '100%', 
+              background: 'linear-gradient(90deg, var(--accent), var(--info))',
+              boxShadow: '0 0 20px var(--accent)' 
+            }}
+          />
+        </div>
+        <div style={{ fontFamily: 'var(--font-display)', color: 'var(--accent)', fontSize: '2rem', fontWeight: '900', fontStyle: 'italic' }}>
+          {loadProgress}%
+        </div>
       </div>
     </div>
   );
