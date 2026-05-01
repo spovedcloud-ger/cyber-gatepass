@@ -575,19 +575,36 @@ function TrashBin({ deletedItems, refreshData, showToast }) {
 
 function GateGraph({ items }) {
   const stats = useMemo(() => {
-    const counts = {};
+    const monthCounts = {};
+    const now = new Date();
+    const currentMonthKey = now.toLocaleString('default', { month: 'short', year: 'numeric' });
+
     items.forEach(item => {
-      const match = item.title.match(/\((.*?)\)/);
-      const name = match ? match[1] : 'Unknown/General';
-      counts[name] = (counts[name] || 0) + 1;
+      // Prioritize createdAt if it's a date, otherwise parse filedDate
+      const date = item.createdAt ? new Date(item.createdAt) : new Date(item.filedDate);
+      if (isNaN(date.getTime())) return;
+      
+      const key = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+      monthCounts[key] = (monthCounts[key] || 0) + 1;
     });
 
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    // Sort months chronologically for the graph
+    const sortedMonths = Object.entries(monthCounts).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+    
+    // Find highest and lowest volume months
+    const volumes = Object.values(monthCounts);
+    const maxVol = volumes.length > 0 ? Math.max(...volumes) : 0;
+    
+    const peakMonth = sortedMonths.find(m => m[1] === maxVol) || ['N/A', 0];
+    const currentMonthTotal = monthCounts[currentMonthKey] || 0;
+
     return {
       total: items.length,
-      byUser: sorted,
-      highest: sorted[0] || ['N/A', 0],
-      lowest: sorted[sorted.length - 1] || ['N/A', 0]
+      currentMonth: currentMonthTotal,
+      currentMonthLabel: currentMonthKey,
+      peakMonth: peakMonth,
+      byMonth: sortedMonths,
+      maxVol: maxVol
     };
   }, [items]);
 
@@ -596,43 +613,49 @@ function GateGraph({ items }) {
       <div className="bg-grid" />
       <div className="bg-glow" />
       <header>
-        <h1>Operational Analytics</h1>
-        <p className="subtitle">Gatepass Distribution & Personnel Metrics</p>
+        <h1>Operational Trends</h1>
+        <p className="subtitle">Monthly Authorization Volume & System Activity</p>
       </header>
 
       <main className="single-column-layout">
         <div className="stats-grid">
            <div className="glass-card stat-item">
-              <label>Total Gatepasses</label>
-              <div className="stat-value text-accent">{stats.total}</div>
+              <label>This Month ({stats.currentMonthLabel})</label>
+              <div className="stat-value text-accent">{stats.currentMonth}</div>
+              <small className="text-secondary">Records filed</small>
            </div>
            <div className="glass-card stat-item">
-              <label>Highest Volume</label>
-              <div className="stat-value text-info" style={{ fontSize: '1rem' }}>{stats.highest[0]}</div>
-              <small className="text-secondary">{stats.highest[1]} records</small>
+              <label>Peak Activity</label>
+              <div className="stat-value text-info" style={{ fontSize: '1rem' }}>{stats.peakMonth[0]}</div>
+              <small className="text-secondary">{stats.peakMonth[1]} records</small>
            </div>
            <div className="glass-card stat-item">
-              <label>Lowest Volume</label>
-              <div className="stat-value text-danger" style={{ fontSize: '1rem' }}>{stats.lowest[0]}</div>
-              <small className="text-secondary">{stats.lowest[1]} records</small>
+              <label>Total Archive</label>
+              <div className="stat-value text-primary">{stats.total}</div>
+              <small className="text-secondary">All-time logs</small>
            </div>
         </div>
 
         <div className="glass-card" style={{ marginTop: '2rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', marginBottom: '2.5rem', color: 'var(--accent)', letterSpacing: '2px' }}>PERSONNEL DISTRIBUTION</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', marginBottom: '2.5rem', color: 'var(--accent)', letterSpacing: '2px' }}>MONTHLY VOLUME TREND</h2>
           <div className="graph-container">
-            {stats.byUser.length === 0 ? (
-               <p className="empty-state">Insufficient data for visualization.</p>
+            {stats.byMonth.length === 0 ? (
+               <p className="empty-state">No historical data available for trend analysis.</p>
             ) : (
-              stats.byUser.map(([name, count]) => (
-                <div key={name} className="graph-row">
-                  <div className="graph-label" title={name}>{name}</div>
+              stats.byMonth.map(([month, count]) => (
+                <div key={month} className="graph-row">
+                  <div className="graph-label">{month}</div>
                   <div className="graph-bar-wrapper">
                     <motion.div 
                       className="graph-bar"
                       initial={{ width: 0 }}
-                      animate={{ width: `${(count / stats.highest[1]) * 100}%` }}
+                      animate={{ width: `${(count / stats.maxVol) * 100}%` }}
                       transition={{ duration: 1, ease: "easeOut" }}
+                      style={{ 
+                        background: month === stats.currentMonthLabel 
+                          ? 'linear-gradient(90deg, var(--accent), var(--success))' 
+                          : 'linear-gradient(90deg, #3b82f6, #1d4ed8)' 
+                      }}
                     />
                     <span className="graph-count">{count}</span>
                   </div>
