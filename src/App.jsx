@@ -299,10 +299,19 @@ function GateLogs({ items, refreshData, showToast }) {
 
   const extractDate = (text) => {
     if (!text) return 'N/A';
-    // Matches MM/DD/YYYY, DD/MM/YYYY, M/D/YY, etc. with / or -
-    const dateRegex = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/;
-    const match = text.match(dateRegex);
-    return match ? match[0] : 'N/A';
+    
+    // 1. Match Numeric Formats (MM/DD/YYYY, DD/MM/YYYY, etc.)
+    const numericRegex = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/;
+    const numericMatch = text.match(numericRegex);
+    if (numericMatch) return numericMatch[0];
+
+    // 2. Match Written Formats (January 26, 2026, Jan 26 2026, etc.)
+    const monthNames = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+    const writtenRegex = new RegExp(`\\b${monthNames}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}\\b`, "i");
+    const writtenMatch = text.match(writtenRegex);
+    if (writtenMatch) return writtenMatch[0];
+
+    return 'N/A';
   };
 
   const [currentPage, setCurrentPage] = useState(1);
